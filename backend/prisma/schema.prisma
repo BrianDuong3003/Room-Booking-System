@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String       @id @default(uuid())
+  email     String       @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole     @default(USER)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  profile   UserProfile?
+  bookings  Booking[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  department    String?
+  contactNumber String?
+  preferredRoom String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Building {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  address     String
+  floors      Int
+  closingTime String // Format "HH:MM", e.g., "21:00"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rooms       Room[]
+
+  @@map("buildings")
+}
+
+model Room {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  capacity    Int
+  buildingId  String
+  floor       Int
+  status      RoomStatus      @default(AVAILABLE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  building    Building        @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  // bookings    Booking[]
+  schedules   RoomSchedule[]
+  devices     DeviceControl[]
+
+  @@unique([buildingId, name])
+  @@map("rooms")
+}
+
+// model Booking {
+//   id             String        @id @default(uuid())
+//   roomScheduleId String
+//   userId         String
+//   // startTime DateTime
+//   // endTime   DateTime
+//   purpose        String?
+//   status         BookingStatus @default(PENDING)
+//   createdAt      DateTime      @default(now())
+//   updatedAt      DateTime      @updatedAt
+
+//   RoomSchedule RoomSchedule @relation(fields: [roomScheduleId], references: [id], onDelete: Cascade)
+//   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   // Room           Room?        @relation(fields: [roomId], references: [id])
+//   // roomId       String?
+
+//   @@index([roomScheduleId])
+//   @@index([userId])
+//   @@map("bookings")
+// }
+
+model Booking {
+  id             String        @id @default(uuid())
+  roomScheduleId String
+  userId         String
+  purpose        String?
+  status         BookingStatus @default(PENDING)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  version        Int          @default(0)
+
+  RoomSchedule RoomSchedule @relation(fields: [roomScheduleId], references: [id], onDelete: Cascade, map: "bookings_roomScheduleId_fkey")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "bookings_user_fkey")
+
+  @@index([roomScheduleId])
+  @@index([userId])
+  @@map("bookings")
+  // Add a unique constraint to prevent concurrent bookings
+  @@unique([roomScheduleId, status], name: "uniqueActiveBooking")
+}
+model RoomSchedule {
+  id          String    @id @default(uuid())
+  roomId      String
+  // date        DateTime // Just the date part
+  startTime   DateTime // Format "HH:MM", e.g., "09:00"
+  endTime     DateTime // Format "HH:MM", e.g., "17:00"
+  lastUpdated DateTime  @updatedAt
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  status     RoomStatus @default(AVAILABLE)
+
+  @@unique([roomId, startTime, endTime])
+  @@map("room_schedules")
+}
+
+model DeviceControl {
+  id          String     @id @default(uuid())
+  roomId      String
+  deviceType  DeviceType
+  status      Boolean    @default(false)
+  lastUpdated DateTime   @updatedAt
+  room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, deviceType])
+  @@map("device_controls")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  LECTURER
+  STUDENT
+  STAFF
+  GUEST
+  SECURITY
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum DeviceType {
+  LIGHTS
+  DOOR
+  FAN
+  SOUND_SYSTEM
+  PROJECTOR
+  CAMERA
+}
