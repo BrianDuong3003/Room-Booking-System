@@ -1,4 +1,4 @@
-# Classroom Room Booking System
+# Room Booking System
 
 A full-stack web application for managing classroom bookings, scheduling, and room administration,...
 
