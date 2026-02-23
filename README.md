@@ -16,3 +16,5 @@ This project provides an efficient room booking and scheduling solution for educ
 - Admin dashboard for room and schedule management
 - Password hashing and request validation
 - Role-based access control
+
+The project (in private) has been transferred from the old GitHub account with the now-deactivated edu email to the GitHub account with the personal email.
